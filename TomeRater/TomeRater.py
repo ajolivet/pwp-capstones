@@ -25,7 +25,16 @@ class User(object):
             return False
 
     def read_book(self, book, rating=None):
-        self.books[book] = rating
+        try:
+            rating = int(rating)
+            if not 0 <= rating <= 4:
+                raise ValueError
+        except ValueError:
+            raise
+        except TypeError:
+            self.books[book] = rating
+        else:
+            self.books[book] = rating
 
     def get_average_rating(self):
         # Returns an average of the ratings given by the user.
@@ -52,9 +61,16 @@ class Book(object):
         print("The ISBN of the book {title} has been updated to {isbn}".format(title=self.title, isbn=self.isbn))
 
     def add_rating(self, rating):
-        # rating only valid between 0 and 4 included
-        if isinstance(rating, int):
-            self.ratings.append(rating) if 0 <= rating <= 4 else print ("Invalid Rating")
+        try:
+            rating = int(rating)
+            if not 0 <= rating <= 4:
+                raise ValueError
+        except ValueError:
+            raise
+        except TypeError:
+            pass
+        else:
+            self.ratings.append(rating)
 
     def __eq__(self, other):
         return self.title == other.title and self.isbn == other.isbn
@@ -126,8 +142,11 @@ class TomeRater(object):
             print("No user with email: {email}".format(email=email))
             return
         else:
-            user.read_book(book, rating)
-            book.add_rating(rating)
+            try:
+                user.read_book(book, rating)
+                book.add_rating(rating)
+            except ValueError:
+                print("{} is not an acceptable rating, rating must be an integer between 0 and 4 included".format(rating))
         if book in self.books:
             self.books[book] += 1
         else:
@@ -141,18 +160,23 @@ class TomeRater(object):
         ''' Checks the format of email, checks if email is already used by a user,
         then adds the user, then add the books to the user (add_book_user()) if
         provided '''
-        for u in self.users.values():
-            if email == u.get_email():
-                print("A user with email '{email}' already exists.".format(email=email))
-                return
-        if email.count('@') == 1 and email[-4:] in [".com", ".org", ".edu"]:
-            self.users[email] = User(name, email)
-        else:
-            print("Email must have the format: 'xxxx@xxxx[.com][.edu][.org]'")
+        try:
+            self.check_email(email)
+        except ValueError as err:
+            print(err.args[0])
             return
+        else:
+            self.users[email] = User(name, email)
         if user_books != None:
             for b in user_books:
                 self.add_book_to_user(b, email)
+
+    def check_email(self, email):
+        for u in self.users.values():
+            if email == u.get_email():
+                raise ValueError("A user with email '{email}' already exists.".format(email=email))
+        if email.count('@') != 1 or email[-4:] not in [".com", ".org", ".edu"]:
+            raise ValueError("Email must have the format: 'xxxx@xxxx[.com][.edu][.org]'")
 
     def print_catalog(self):
         for b in self.books.keys():
